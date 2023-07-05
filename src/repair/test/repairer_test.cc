@@ -25,10 +25,17 @@ int main()
   exr::Name eth_name = "";
 
   //Initialize
+
+  //该命令使用dd命令从/dev/urandom设备中读取随机数据，并将其写入到指定的文件路径中。
+  //该文件路径由变量dpath和pathr通过字符串拼接得到。
+  //写入的数据块大小为2MB（即bs=2097152），一共写入64个数据块（即count=64）。
+  //这段代码的作用是生成一个大小为128MB的随机数据文件，并将其写入到指定的文件路径中。
   auto _ = system(("dd if=/dev/urandom of=" + dpath + pathr +
                    " bs=2097152 count=64").c_str());
+
+
   const exr::Count total = 7;
-  const exr::DataSize bsize = 67108864;
+  const exr::DataSize bsize = 67108864;//64MB
   exr::Repairer nr[total - 1] = {
     {1, total, dpath + pathr, dpath + "1" + pathw, total, bsize,
      bw_path, eth_name, true, 6, 3, 10},
@@ -42,9 +49,16 @@ int main()
      bw_path, eth_name, true, 6, 3, 10},
     {6, total, dpath + pathr, dpath + "6" + pathw, total, bsize,
      bw_path, eth_name, true, 6, 3, 10}};
-  exr::AccessCenter ac(0, total);
+  exr::AccessCenter ac(0, total);//设置当前节点id为0
 
   //Connect
+
+  //使用了C++11中的std::thread库创建了total - 1个线程，并将它们存储在t数组中。
+  // 每个线程都执行相同的操作，即调用nr[i].Prepare(ip_addresses)方法。
+  //这里使用了lambda表达式来创建线程函数，通过引用捕获了外部的ip_addresses变量和i变量。
+  
+  // 其中，nr是一个对象数组，Prepare方法是对象的一个成员函数。
+  //通过nr[i]可以访问到数组中的第i个对象，并在其上调用Prepare方法。
   std::thread t[total - 1];
   for (int i = 0; i < total - 1; ++i)
     t[i] = std::thread([&, i] { nr[i].Prepare(ip_addresses); });

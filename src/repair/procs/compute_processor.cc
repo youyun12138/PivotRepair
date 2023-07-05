@@ -28,6 +28,8 @@ void ComputeProcessor::Process(DataPiece data, Count qid) {
   auto &pg = task_pieces_[task_id];
   lck.unlock();
 
+  //如果数据的缓冲区为空并且大小大于 0，则说明这是一个任务信息，将其发送给下一个数据处理器，并将大小设为负值。
+  //否则，将数据添加到 pg 中，如果添加失败，则将大小设为 0。
   //Deal with the content
   if (!(data.buf) && size > 0) {
     //Task info
@@ -37,6 +39,12 @@ void ComputeProcessor::Process(DataPiece data, Count qid) {
     //Data piece not sended out
     size = 0;
   }
+
+  //获取 pg 的剩余互斥锁 rlck，并根据数据的大小更新 pg 中的信息。
+  //如果数据大小为负，则说明这是一个任务信息，将 pg 的总大小设为负的数据大小的绝对值。
+  //否则，将数据大小加到 pg 的总大小 total 中，并将 pg 的和 sum 加上数据大小。
+
+  //如果 pg 的总大小等于和，说明所有数据都已经接收到了，这时释放 remain_mtx 互斥锁并获取 mtx_ 互斥锁，将 task_id 从 task_pieces_ 中移除。
 
   //Check if task ended
   std::unique_lock<std::mutex> rlck(pg.remain_mtx);
@@ -51,16 +59,17 @@ void ComputeProcessor::Process(DataPiece data, Count qid) {
   }
 }
 
-bool ComputeProcessor::AddPiece_(PieceGroup &pg, DataPiece data) {
+bool ComputeProcessor::bool ComputeProcessor::AddPiece_(PieceGroup &pg, DataPiece data)(PieceGroup &pg, DataPiece data) {
   //Get piece, create one if not exist
   auto offset = data.offset;
   std::unique_lock<std::mutex> glck(pg.map_mtx);
   auto &ptp = pg.pieces[offset];
+  //数据分片 data 的偏移量 offset 对应的数据分片 ptp 不存在时，创建一个新的数据分片 TempPiece，并将其添加到数据分片组 pg 中。
   if (!ptp) {
     ptp = std::make_unique<TempPiece>(std::move(data), 0);
     ptp->temp_buf = mp_.Get(0, offset);
     glck.unlock();
-  } else {
+  } else { //如果 ptp 存在，则将 ptp 中的数据和 data 进行异或运算，并更新 ptp 中的信息。
     glck.unlock();
     //XOR two pieces and gather the infomation
     std::unique_lock<std::mutex> plck(ptp->mtx);
@@ -78,6 +87,15 @@ bool ComputeProcessor::AddPiece_(PieceGroup &pg, DataPiece data) {
     }
     plck.unlock();
   }
+
+
+  //首先获取 ptp 的互斥锁 plck。接着，将 ptp->num 自增 1，表示接收到了一个数据分片。累加 ptp->src_num 和 data.src_num，表示当前数据分片的源数。
+
+  //如果 ptp->src_num 等于 ptp->num，说明所有数据分片都已经接收到了，可以将它们发送给下一个数据处理器。
+  //这时，先将 ptp->dp 封装成 DataPiece 类型，并使用 std::move() 将其移动到 next_prc_ 中，然后释放 plck 互斥锁并获取 glck 互斥锁，将 offset 从 pg.pieces 中移除，并返回布尔值 true。
+
+  //如果 ptp->src_num 不等于 ptp->num，说明还没有接收到所有数据分片，不能将它们发送给下一个数据处理器。
+  //这时，直接返回布尔值 false。
 
   //Check if need to send the data out
   std::unique_lock<std::mutex> plck(ptp->mtx);

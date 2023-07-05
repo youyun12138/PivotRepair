@@ -25,15 +25,18 @@ ProceedProcessor::~ProceedProcessor() {
   Close();
 }
 
+
+
 //Distribute
 Count ProceedProcessor::Distribute(const DataPiece &data) {
   std::unique_lock<std::mutex> lck(mtxs_[0]);
+  //使用 task_threads_ 容器的 find() 函数查找是否有与 data.task_id 相匹配的任务线程，如果找到了，则返回该任务线程的 ID；
   auto it = task_threads_.find(data.task_id);
   if (it != task_threads_.end()) {
     return it->second;
-  } else if (free_threads_.empty()) {
+  } else if (free_threads_.empty()) {//如果当前没有可用的空闲线程，则返回 queue_n_ 表示当前没有可用的处理器
     return queue_n_;
-  } else {
+  } else {//从 free_threads_ 容器的前端取出一个空闲线程的 ID，将该线程的 ID 分配给当前任务，并从 free_threads_ 容器中移除该线程的 ID，最后返回该线程的 ID
     auto qid = free_threads_.front();
     free_threads_.pop();
     task_threads_[data.task_id] = qid;

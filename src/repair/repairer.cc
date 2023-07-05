@@ -42,11 +42,13 @@ void Repairer::WaitForFinish() {
 
 //Get tasks from the master
 void Repairer::GetTaks() {
-  RepairTask rt;
-  Count src_id;
+  RepairTask rt; //接收到的任务
+  Count src_id;  //任务源id
   while (true) {
     //Get from master and check if can quit
-    ac_.Receive(0, sizeof(rt), &rt);
+    ac_.Receive(0, sizeof(rt), &rt); //从master接收任务
+    //检查接收到的任务信息，如果任务大小为 0 且任务块大小也为 0，则表示任务已全部完成，跳出循环。
+    //否则，如果任务块大小不为 0，则需要设置带宽信息。
     if (rt.size == 0) {
       if (rt.piece_size == 0) {
         //No more task, the repair is ended
@@ -70,6 +72,8 @@ void Repairer::GetTaks() {
       }
     }
 
+    //如果接收到的任务大小不为 0，则说明有新的任务需要处理。
+    //将任务的来源数量加一，然后使用 receiver_.PushData() 函数将任务发送给处理器进行处理，并等待所有处理器都接收到任务。
     //Has a new task, deliver to the processors
     rt.src_num += 1;
     receiver_.PushData({rt, id_});

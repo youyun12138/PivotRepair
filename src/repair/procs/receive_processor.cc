@@ -24,6 +24,8 @@ ReceiveProcessor::~ReceiveProcessor() { Close(); }
 //Distribute
 Count ReceiveProcessor::Distribute(const ReceiveTask &data) { return 0; }
 
+//在 Process() 函数中，如果接收到的任务是本地任务（即数据源和当前节点相同），则调用 LoadData_() 函数加载数据；
+//否则调用 ReceiveData_() 函数获取其他节点发送过来的数据。
 //Distinguish between a local task and a remote task
 void ReceiveProcessor::Process(ReceiveTask data, Count qid) {
   //Send the infomation of the task to the next processor
@@ -34,6 +36,8 @@ void ReceiveProcessor::Process(ReceiveTask data, Count qid) {
 }
 
 //Load data from local
+//将一个任务分成多个数据块，并将数据块通过网络传输给下一个数据处理器。
+//其中，本地数据不需要通过网络传输，直接从本地文件中读取即可；而远程数据需要从其他节点中获取，再进行编码和传输。
 void ReceiveProcessor::LoadData_(ReceiveTask data) {
   //Send task's size to the next processor
   auto t = std::chrono::system_clock::now();
