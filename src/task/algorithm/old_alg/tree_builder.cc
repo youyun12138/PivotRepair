@@ -379,12 +379,22 @@ double TreeBuilder::build_repair_pipeline(int fail_node)
   return global_min;
 }
 
+
+//用于搜索从根节点到失败节点的最短路径，并将其存储在op_p数组中
+//p表示搜索路径；op_p用于存储最短路径；
+//count表示已经搜索到的节点数量；
+//global_min表示当前已经找到的最短路径长度；
+//cur_min表示当前搜索路径中的最小边权值。
 void TreeBuilder::extend_repair_pipeline(int *p, int *op_p, int count, double &global_min, double cur_min)
 {
+  //判断搜索路径是否已经包含了rs_k_个节点，
+  //如果是，则表示已经找到了一条完整的路径，将其存储在op_p数组中，并更新global_min的值。
   if (count == rs_k_) {
     memcpy(op_p, p, sizeof(int) * (rs_n_ + 1));
     global_min = cur_min;
   } else {
+    //否则，函数会遍历所有未被选中的节点，
+    //计算该节点与当前路径上最后一个节点之间的边权值
     for (int i = 1; i <= rs_n_; ++i)
     {
       if (!selected[i]) {
@@ -392,17 +402,19 @@ void TreeBuilder::extend_repair_pipeline(int *p, int *op_p, int count, double &g
         if (new_cur_min > cur_min) {
           new_cur_min = cur_min;
         }
-
+        //如果该边权值小于等于global_min，则表示当前搜索路径已经不可能成为最大流量的路径。
         //early stop
         if (new_cur_min <= global_min) {
           continue;
         }
-
+        //如果该边权值大于cur_min，则将其作为新的cur_min，将该节点添加到搜索路径中，
+        //递归调用extend_repair_pipeline函数，继续搜索下一个节点。
         p[count + 1] = i;
         selected[i] = true;
         //further calculation
         extend_repair_pipeline(p, op_p, count + 1, global_min, new_cur_min);
         //restore
+        ////搜索完成后，需要将该节点从搜索路径中移除，以便搜索其他分支。
         selected[i] = false;
       }
     }

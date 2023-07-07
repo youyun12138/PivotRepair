@@ -59,7 +59,7 @@ void ComputeProcessor::Process(DataPiece data, Count qid) {
   }
 }
 
-bool ComputeProcessor::bool ComputeProcessor::AddPiece_(PieceGroup &pg, DataPiece data)(PieceGroup &pg, DataPiece data) {
+bool ComputeProcessor::AddPiece_(PieceGroup &pg, DataPiece data) {
   //Get piece, create one if not exist
   auto offset = data.offset;
   std::unique_lock<std::mutex> glck(pg.map_mtx);
