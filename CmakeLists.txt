@@ -1,0 +1,24 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(pivotrepaire)
+
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_CXX_STANDARD 14)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib/sockpp)
+
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/config src_dir_config)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/data src_dir_data)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/repair src_dir_repair)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/repair/procs src_dir_procs)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/task/algorithm src_dir_alg)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/task src_dir_task)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/src/util src_dir_util)
+
+set(source ${src_dir_config} ${src_dir_data} ${src_dir_repair} ${src_dir_procs} ${src_dir_alg} ${src_dir_task} ${src_dir_util})
+
+add_executable(master ${CMAKE_CURRENT_SOURCE_DIR}/src/master_main.cc)
+target_sources(master PRIVATE ${source})
+target_include_directories(master PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/lib/isa-l/include)
+target_link_libraries(master sockpp)
+target_include_directories(master PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src)
